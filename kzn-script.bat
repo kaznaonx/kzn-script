@@ -508,7 +508,7 @@ echo.  %M%[%R%19%M%]%R% InterruptAffinity
 echo.  %G%Bind the CPU affinity
 echo.  of the interrupts
 echo.
-echo.  %R%Apply value: %GR%1%R%
+echo.  %R%Apply value: %GR%[1]%R%
 echo.  Reset value: %RED%2%R%
 echo.
 
