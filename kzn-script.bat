@@ -1,9 +1,8 @@
 @echo off
-title KZNScript
+title KZN Script
 setlocal EnableDelayedExpansion
 
 call :Colors & call :StartMenu
-
 set PAGE=MainMenuFirstPage & goto CheckValue
 
 :CheckValue
@@ -20,7 +19,7 @@ set MDQSCON=%MDQS:~2%
 :: Win32PrioritySeparation
 for /f "tokens=2* delims=	 " %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation"') do set W32=%%j
 set WIN32=%W32:~2%
-for %%i in (WC NP TCP SVC) do (set "%%i=%GR% On") & (
+for %%i in (WC NP TCP SVC IAPT MMU ADAPTER USB NPI NET) do (set "%%i=%GR% On") & (
     :: WriteCombining
     reg query "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "DisableWriteCombining" || set "WC=%RED%Off"
     :: NvidiaPreemption
@@ -31,28 +30,26 @@ for %%i in (WC NP TCP SVC) do (set "%%i=%GR% On") & (
 	for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /value') do (set /a ram=%%i + 1024000)
     for /f "tokens=2* delims=	 " %%i in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB"') do set /a regram=%%j
 	if "!regram!" NEQ "!ram!" set "SVC=%RED%Off"
-) >nul 2>&1
-for %%i in (PT USB HPET NPI GPUS NET MMU IAPT ADAPTER) do (set "%%i=%RED%Off") & (
-    :: PowerThrottling
-    reg query "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" | find "0x1" || set "PT=%GR% On"
+    :: InterruptAffinity
+    reg query "HKCU\SOFTWARE\KZNScript" /v "InterruptAffinity" || set "IAPT=%RED%Off"
+    :: MsiModeUtility
+    reg query "HKCU\SOFTWARE\KZNScript" /v "MsiModeUtility" || set "MMU=%RED%Off"
+    :: NetworkAdapter
+    reg query "HKCU\SOFTWARE\KZNScript" /v "Adapter" || set "ADAPTER=%RED%Off"
     :: USBPowerSaves
-    reg query "HKCU\SOFTWARE\KZNScript" /v "USBPowerSaves" | find "0x0" || set "USB=%GR% On"
-    :: High Precision Event Timer
-    reg query "HKCU\SOFTWARE\KZNScript" /v "HPET" | find "0x1" || set "HPET=%GR% On"
+    reg query "HKCU\SOFTWARE\KZNScript" /v "USBPowerSaves" || set "USB=%RED%Off"
     :: Nvidia Profile Inspector
-    reg query "HKCU\SOFTWARE\KZNScript" /v "NvidiaProfileInspector" | find "0x0" || set "NPI=%GR% On"
+    reg query "HKCU\SOFTWARE\KZNScript" /v "NvidiaProfileInspector" || set "NPI=%RED%Off"
+    :: Netsh
+    reg query "HKCU\SOFTWARE\KZNScript" /v "Netsh" || set "NET=%RED%Off"
+) >nul 2>&1
+for %%i in (PT GPUS HPET WU BLTH PRNT NETSER FRWL WIFI VPN HID MBIOS WSET DISKDEF TRBL TASKM NULL NVIDIA) do (set "%%i=%RED%Off") & (
+    :: PowerThrottling
+    reg query "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" || set "PT=%GR% On"
     :: GPUScheduling
     reg query "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" | find "0x1" || set "GPUS=%GR% On"
-    :: Netsh
-    reg query "HKCU\SOFTWARE\KZNScript" /v "Netsh" | find "0x0" || set "NET=%GR% On"
-    :: MsiModeUtility
-    reg query "HKCU\SOFTWARE\KZNScript" /v "MsiModeUtility" | find "0x0" || set "MMU=%GR% On"
-    :: InterruptAffinity
-    reg query "HKCU\SOFTWARE\KZNScript" /v "InterruptAffinity" | find "0x0" || set "IAPT=%GR% On"
-    :: NetworkAdapter
-    reg query "HKCU\SOFTWARE\KZNScript" /v "Adapter" | find "0x0" || set "ADAPTER=%GR% On"
-) >nul 2>&1
-for %%i in (WU BLTH PRNT NETSER FRWL WIFI VPN HID MBIOS WSET DISKDEF TRBL TASKM NULL NVIDIA) do (set "%%i=%RED%Off") & (
+    :: High Precision Event Timer
+    reg query "HKCU\SOFTWARE\KZNScript" /v "HPET" || set "HPET=%GR% On"
     :: WindowsUpdate
     reg query "HKLM\SYSTEM\CurrentControlSet\Services\wuauserv" /v "Start" | find "0x4" || set "WU=%GR% On"
     :: Bluetooth
@@ -87,7 +84,7 @@ for %%i in (WU BLTH PRNT NETSER FRWL WIFI VPN HID MBIOS WSET DISKDEF TRBL TASKM 
 goto %PAGE%
 
 :MainMenuFirstPage
-title KZNScript Page [1]
+title KZN Script Page [1]
 mode 142,40
 echo.
 echo.    %G%$.:k.:klk:.%R%                    .::....:::.                                             %S%Tweaks
@@ -128,39 +125,37 @@ echo.       %DRED%[%R%R%DRED%]%R% Restart           %C%[%R%P%C%]%R% Next Page   
 echo.                                                of the interrupts                                                management
 
 set /p menu=%del%             %R%Enter value to select:
-if "%menu%" EQU "DX" goto DirectX
-if "%menu%" EQU "dx" goto DirectX
-if "%menu%" EQU "VC" goto VCRedist
-if "%menu%" EQU "vc" goto VCRedist
-if "%menu%" EQU "R" goto shutdown /r /f
-if "%menu%" EQU "r" goto shutdown /r /f
-if "%menu%" EQU "P" set "PAGE=MainMenuSecondPage" & goto MainMenuSecondPage
-if "%menu%" EQU "p" set "PAGE=MainMenuSecondPage" & goto MainMenuSecondPage
-if "%menu%" EQU "1" goto DiskOptimization
-if "%menu%" EQU "2" goto SvcHostSplitThreshold
-if "%menu%" EQU "3" goto AltTab
-if "%menu%" EQU "4" goto PowerThrottling
-if "%menu%" EQU "5" goto USBPowerSaves
-if "%menu%" EQU "6" goto HPET
-if "%menu%" EQU "7" goto KeyboardDataQueueSize
-if "%menu%" EQU "8" goto MouseDataQueueSize
-if "%menu%" EQU "9" goto Win32PrioritySeparation
-if "%menu%" EQU "10" goto NvidiaDriver
-if "%menu%" EQU "11" goto NvidiaProfileInspector
-if "%menu%" EQU "12" goto NvidiaTelemetry
-if "%menu%" EQU "13" goto GPUScheduling
-if "%menu%" EQU "14" goto NvidiaPreemption
-if "%menu%" EQU "15" goto WriteCombining
-if "%menu%" EQU "16" goto NetworkAdapter
-if "%menu%" EQU "17" goto TCP/IP
-if "%menu%" EQU "18" goto Netsh
-if "%menu%" EQU "19" goto InterruptAffinity
-if "%menu%" EQU "20" goto MsiModeUtility
-if "%menu%" EQU "21" goto Autoruns
+if /i "%menu%" EQU "dx" goto DirectX
+if /i "%menu%" EQU "vc" goto VCRedist
+if /i "%menu%" EQU "r" goto shutdown /r /f
+if /i "%menu%" EQU "p" set "PAGE=MainMenuSecondPage" & goto MainMenuSecondPage
+for %%i in (
+    "1=DiskOptimization"
+    "2=SvcHostSplitThreshold"
+    "3=AltTab"
+    "4=PowerThrottling"
+    "5=USBPowerSaves"
+    "6=HPET"
+    "7=KeyboardDataQueueSize"
+    "8=MouseDataQueueSize"
+    "9=Win32PrioritySeparation"
+    "10=NvidiaDriver"
+    "11=NvidiaProfileInspector"
+    "12=NvidiaTelemetry"
+    "13=GPUScheduling"
+    "14=NvidiaPreemption"
+    "15=WriteCombining"
+    "16=NetworkAdapter"
+    "17=TCP/IP"
+    "18=Netsh"
+    "19=InterruptAffinity"
+    "20=MsiModeUtility"
+    "21=Autoruns"
+) do for /f "tokens=1,2 delims==" %%a in ("%%~i") do (if "!menu!" EQU "%%~a" goto %%~b)
 goto CheckValue
 
 :MainMenuSecondPage
-title KZNScript Page [2]
+title KZN Script Page [2]
 mode 142,40
 echo.
 echo.    %G%$.:k.:klk:.%R%                    .::....:::.                                            %S%Services
@@ -201,45 +196,43 @@ echo.       %DRED%[%R%R%DRED%]%R% Restart           %C%[%R%P%C%]%R% Next Page
 echo.
 
 set /p menu=%del%             %R%Enter value to select:
-if "%menu%" EQU "R" goto shutdown /r /f
-if "%menu%" EQU "r" goto shutdown /r /f
-if "%menu%" EQU "P" set "PAGE=MainMenuFirstPage" & goto MainMenuFirstPage
-if "%menu%" EQU "p" set "PAGE=MainMenuFirstPage" & goto MainMenuFirstPage
-if "%menu%" EQU "22" goto WindowsUpdate
-if "%menu%" EQU "23" goto Bluetooth
-if "%menu%" EQU "24" goto Printing
-if "%menu%" EQU "25" goto Network
-if "%menu%" EQU "26" goto Firewall
-if "%menu%" EQU "27" goto Wi-Fi
-if "%menu%" EQU "28" goto VPN
-if "%menu%" EQU "29" goto HumanInterfaceDevices
-if "%menu%" EQU "30" goto ManagementBios
-if "%menu%" EQU "31" goto WindowsSettings
-if "%menu%" EQU "32" goto DiskDefragmentation
-if "%menu%" EQU "33" goto Troubleshooting
-if "%menu%" EQU "34" goto TaskManager
-if "%menu%" EQU "35" goto Null
-if "%menu%" EQU "36" goto NvidiaPanel
-if "%menu%" EQU "37" goto SettingsOBSStudio
-if "%menu%" EQU "38" goto Lightshot
-if "%menu%" EQU "39" goto Office
+if /i "%menu%" EQU "R" goto shutdown /r /f
+if /i "%menu%" EQU "p" set "PAGE=MainMenuFirstPage" & goto MainMenuFirstPage
+for %%i in (
+    "22=WindowsUpdate"
+    "23=Bluetooth"
+    "24=Printing"
+    "25=Network"
+    "26=Firewall"
+    "27=Wi-Fi"
+    "28=VPN"
+    "29=HumanInterfaceDevices"
+    "30=ManagementBios"
+    "31=WindowsSettings"
+    "32=DiskDefragmentation"
+    "33=Troubleshooting"
+    "34=TaskManager"
+    "35=Null"
+    "36=NvidiaPanel"
+    "37=SettingsOBSStudio"
+    "38=Lightshot"
+    "39=Office"
+) do for /f "tokens=1,2 delims==" %%a in ("%%~i") do (if "!menu!" EQU "%%~a" goto %%~b)
 goto CheckValue
 
 :: ### Tweaks ###
 :: Install DirectX
 :DirectX
 curl -g -L -# -o "%systemroot%\Files\directx_Jun2010_redist.exe" "https://download.microsoft.com/download/8/4/A/84A35BF1-DAFE-4AE8-82AF-AD2AE20B6B14/directx_Jun2010_redist.exe"
-"%systemdrive%\Program Files\7-Zip\7z.exe" x -y -o"%systemroot%\Files\DirectX" "%systemroot%\Files\directx_Jun2010_redist.exe" >nul 2>&1
-%systemroot%\Files\DirectX\DXSETUP.exe /silent
+"%systemdrive%\Program Files\7-Zip\7z.exe" x -y -o"%systemroot%\Files\DirectX" "%systemroot%\Files\directx_Jun2010_redist.exe" >nul 2>&1 && %systemroot%\Files\DirectX\DXSETUP.exe /silent
 del /f /q "%systemroot%\Files\directx_Jun2010_redist.exe" >nul 2>&1 & rd /s /q "%systemroot%\Files\DirectX" >nul 2>&1
 goto CheckValue
 
 :: Install VCRedist
 :VCRedist
 curl -g -L -# -o "%systemroot%\Files\VisualCppRedist_AIO_x86_x64_73.zip" "https://github.com/abbodi1406/vcredist/releases/download/v0.73.0/VisualCppRedist_AIO_x86_x64_73.zip"
-powershell -NoProfile Expand-Archive "%systemroot%\Files\VisualCppRedist_AIO_x86_x64_73.zip" -DestinationPath '%systemroot%\Files\' >nul 2>&1
-%systemroot%\Files\VisualCppRedist_AIO_x86_x64.exe /ai /gm2
-del /f /q "%systemroot%\Files\VisualCppRedist_AIO_x86_x64_73.zip" >nul 2>&1 & del /f /q "%systemroot%\Files\VisualCppRedist_AIO_x86_x64.exe" >nul 2>&1
+powershell -NoProfile Expand-Archive "%systemroot%\Files\VisualCppRedist_AIO_x86_x64_73.zip" -DestinationPath '%systemroot%\Files\' >nul 2>&1 && %systemroot%\Files\VisualCppRedist_AIO_x86_x64.exe /ai /gm2
+del /f /q "%systemroot%\Files\VisualCppRedist_AIO_x86_x64_73.zip" >nul 2>&1 "%systemroot%\Files\VisualCppRedist_AIO_x86_x64.exe" >nul 2>&1
 goto CheckValue
 
 :: DiskOptimization
@@ -258,126 +251,189 @@ goto CheckValue
 :: SvcHostSplitThreshold
 :SvcHostSplitThreshold
 for /f "tokens=2 delims==" %%i in ('wmic os get TotalVisibleMemorySize /value') do set /a ram=%%i + 1024000
-if "%SVC%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d %ram% /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "3670016" /f ) >nul 2>&1
+if "%SVC%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d %ram% /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control" /v "SvcHostSplitThresholdInKB" /t REG_DWORD /d "3670016" /f
+) >nul 2>&1
 goto CheckValue
 
 :: AltTab
 :AltTab
-if "%AT%" EQU "%Y%10" ( reg add "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "1" /f ) >nul 2>&1 else ( reg add "HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "0" /f ) >nul 2>&1
+if "%AT%" EQU "%Y%10" (
+    reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "1" /f
+) >nul 2>&1 else (
+    reg add "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer" /v "AltTabSettings" /t REG_DWORD /d "0" /f
+) >nul 2>&1
 goto CheckValue
 
 :: PowerThrottling
 :PowerThrottling
-if "%PT%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "0" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f ) >nul 2>&1
+if "%PT%" EQU "%RED%Off" (
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\Power\PowerThrottling" /v "PowerThrottlingOff" /t REG_DWORD /d "1" /f
+) >nul 2>&1
 goto CheckValue
 
 :: USBPowerSaves
 :USBPowerSaves
 if "%USB%" EQU "%RED%Off" (
-    for %%a in (EnhancedPowerManagementEnabled AllowIdleIrpInD3 EnableSelectiveSuspend DeviceSelectiveSuspended SelectiveSuspendEnabled SelectiveSuspendOn EnumerationRetryCount ExtPropDescSemaphore WaitWakeEnabled D3ColdSupported WdfDirectedPowerTransitionEnable EnableIdlePowerManagement IdleInWorkingState) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%a" ^| findstr "HKEY"') do reg.exe add "%%b" /v "%%a" /t REG_DWORD /d "1" /f & reg add "HKCU\SOFTWARE\KZNScript" /v "USBPowerSaves" /t REG_DWORD /d "1" /f
+    reg add "HKCU\SOFTWARE\KZNScript" /v "USBPowerSaves" /f
+    for %%a in (
+        "EnhancedPowerManagementEnabled"
+        "AllowIdleIrpInD3"
+        "EnableSelectiveSuspend"
+        "DeviceSelectiveSuspended"
+        "SelectiveSuspendEnabled"
+        "SelectiveSuspendOn"
+        "EnumerationRetryCount"
+        "ExtPropDescSemaphore"
+        "WaitWakeEnabled"
+        "D3ColdSupported"
+        "WdfDirectedPowerTransitionEnable"
+        "EnableIdlePowerManagement"
+        "IdleInWorkingState"
+    ) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f %%a ^| findstr "HKEY"') do reg add "%%b" /v "%%a" /t REG_DWORD /d "1" /f
 ) >nul 2>&1 else (
-    for %%a in (EnhancedPowerManagementEnabled AllowIdleIrpInD3 EnableSelectiveSuspend DeviceSelectiveSuspended SelectiveSuspendEnabled SelectiveSuspendOn EnumerationRetryCount ExtPropDescSemaphore WaitWakeEnabled D3ColdSupported WdfDirectedPowerTransitionEnable EnableIdlePowerManagement IdleInWorkingState) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f "%%a" ^| findstr "HKEY"') do reg.exe add "%%b" /v "%%a" /t REG_DWORD /d "0" /f & reg add "HKCU\SOFTWARE\KZNScript" /v "USBPowerSaves" /t REG_DWORD /d "0" /f
+    reg delete "HKCU\SOFTWARE\KZNScript" /v "USBPowerSaves" /f
+    for %%a in (
+        "EnhancedPowerManagementEnabled"
+        "AllowIdleIrpInD3"
+        "EnableSelectiveSuspend"
+        "DeviceSelectiveSuspended"
+        "SelectiveSuspendEnabled"
+        "SelectiveSuspendOn"
+        "EnumerationRetryCount"
+        "ExtPropDescSemaphore"
+        "WaitWakeEnabled"
+        "D3ColdSupported"
+        "WdfDirectedPowerTransitionEnable"
+        "EnableIdlePowerManagement"
+        "IdleInWorkingState"
+    ) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum" /s /f %%a ^| findstr "HKEY"') do reg add "%%b" /v "%%a" /t REG_DWORD /d "0" /f
 ) >nul 2>&1
 goto CheckValue
 
 :: High precision event timer
 :HPET
-if "%HPET%" EQU "%RED%Off" ( reg add "HKCU\SOFTWARE\KZNScript" /v "HPET" /t REG_DWORD /d "0" /f & DevManView.exe /enable "High precision event timer") >nul 2>&1 else ( reg add "HKCU\SOFTWARE\KZNScript" /v "HPET" /t REG_DWORD /d "1" /f & DevManView.exe /disable "High precision event timer" ) >nul 2>&1
+if "%HPET%" EQU "%RED%Off" (
+    DevManView /enable "High precision event timer" && reg delete "HKCU\SOFTWARE\KZNScript" /v "HPET" /f
+) >nul 2>&1 else (
+    DevManView /disable "High precision event timer" && reg add "HKCU\SOFTWARE\KZNScript" /v "HPET" /f
+) >nul 2>&1
 goto CheckValue
 
 :: KeyboardDataQueueSize
 :KeyboardDataQueueSize
-title KZNScript
-mode 29,12
+title KZN Script KeyboardDataQueueSize
+mode 49,18
 cls
 echo.
-echo.  %S%[%R%7%S%]%R% KeyboardDataQueueSize
-echo.  %G%Change the size of the
-echo.  keyboard data queue
-echo.
-echo.  %R%Default value: %Y%64
-echo.  %R%Current value: %Y%%KDQSCON%
-echo.  %R%Recommendation values:
-echo.  %Y%10 12 14 16 19 20 25 32%R%
+echo.    %G%$.:k.:klk:.%R%                    .::....:::.
+echo.   %G%.knJzPkJnJYYJk\%R%            .:zKZNKZNKZNZ/:
+echo.      %G%zkJzJ.   :kJYk\:%R%    .:/ZKn/.   :zZKz.
+echo.       %G%zzkkBYzklzKZNKzk%R%  :kzKzZnzKnnKZNzk/
+echo.        %G%.knkKZNKZNkkkZzzk%R%kzJ:zKzKZNKzzk/
+echo.           %G%`````kJk. k?K%R%:Kn. :nnK````
+echo.              %G%kNZn    kk %R%z.   .kKZ:
+echo.             %G%Nzk/     kN.%R%z.     kZNk
+echo.            %G%?zzN     :Zk %R%kZ     .KZN:
+echo.            %G%KKZZ    nKZ: %R%kBY:   /KZNk
+echo.            %G%KZkZ   nNkn   %R%JBP.  kKZN/
+echo.            %G%.ZNk  .Kkk     %R%nGk  .kNk
+echo.             %G%nKZNKZ:       %R%kKZNKZ/
+echo.               %G%.kZk          %R%.KZ/
 echo.
 
-set /p KeyboardDataQueueSize=%del%  Enter value:
+set /p KeyboardDataQueueSize=%del%              %W%Enter value in %M%HEX%R%:
 set KeyboardDataQueueSize=%KeyboardDataQueueSize: =%
 for /f %%a in ('powershell -command [uint32]'0x%KeyboardDataQueueSize%'') do set KeyboardDataQueueSizeConvert=%%a
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\kbdclass\Parameters" /v "KeyboardDataQueueSize" /t REG_DWORD /d "%KeyboardDataQueueSizeConvert%" /f >nul 2>&1
+call :StartMenu
 goto CheckValue
 
 :: MouseDataQueueSize
 :MouseDataQueueSize
-title KZNScript
-mode 27,12
+title KZN Script MouseDataQueueSize
+mode 49,18
 cls
 echo.
-echo.  %S%[%R%8%S%]%R% MouseDataQueueSize
-echo.  %G%Change the size of the
-echo.  mouse data queue
-echo.
-echo.  %R%Default value: %Y%64
-echo.  %R%Current value: %Y%%MDQSCON%
-echo.  %R%Recommendation values:
-echo.  %Y%10 12 14 16 19 20 25 32%R%
+echo.    %G%$.:k.:klk:.%R%                    .::....:::.
+echo.   %G%.knJzPkJnJYYJk\%R%            .:zKZNKZNKZNZ/:
+echo.      %G%zkJzJ.   :kJYk\:%R%    .:/ZKn/.   :zZKz.
+echo.       %G%zzkkBYzklzKZNKzk%R%  :kzKzZnzKnnKZNzk/
+echo.        %G%.knkKZNKZNkkkZzzk%R%kzJ:zKzKZNKzzk/
+echo.           %G%`````kJk. k?K%R%:Kn. :nnK````
+echo.              %G%kNZn    kk %R%z.   .kKZ:
+echo.             %G%Nzk/     kN.%R%z.     kZNk
+echo.            %G%?zzN     :Zk %R%kZ     .KZN:
+echo.            %G%KKZZ    nKZ: %R%kBY:   /KZNk
+echo.            %G%KZkZ   nNkn   %R%JBP.  kKZN/
+echo.            %G%.ZNk  .Kkk     %R%nGk  .kNk
+echo.             %G%nKZNKZ:       %R%kKZNKZ/
+echo.               %G%.kZk          %R%.KZ/
 echo.
 
-set /p MouseDataQueueSize=%del%  Enter value:
+set /p MouseDataQueueSize=%del%              %W%Enter value in %M%HEX%R%:
 set MouseDataQueueSize=%MouseDataQueueSize: =%
 for /f %%a in ('powershell -command [uint32]'0x%MouseDataQueueSize%'') do set MouseDataQueueSizeConvert=%%a
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\mouclass\Parameters" /v "MouseDataQueueSize" /t REG_DWORD /d "%MouseDataQueueSizeConvert%" /f >nul 2>&1
+call :StartMenu
 goto CheckValue
 
 :: Win32PrioritySeparation
 :Win32PrioritySeparation
-title KZNScript
-mode 41,13
+title KZN Script Win32PrioritySeparation
+mode 49,18
 cls
 echo.
-echo.  %S%[%R%9%S%]%R% W32PrioritySeparation
-echo.  %G%Change value for
-echo.  W32PrioritySeparation
-echo.
-echo.  %R%Default value: %Y%26
-echo.  %R%Current value: %Y%%WIN32%
-echo.  %R%Recommendation values:
-echo.  %Y%2 14 15 16 18 19 1a 24 25 28 29
-echo.  2a fff9887 ffff3f91 fff55555 fffff311%R%
+echo.    %G%$.:k.:klk:.%R%                    .::....:::.
+echo.   %G%.knJzPkJnJYYJk\%R%            .:zKZNKZNKZNZ/:
+echo.      %G%zkJzJ.   :kJYk\:%R%    .:/ZKn/.   :zZKz.
+echo.       %G%zzkkBYzklzKZNKzk%R%  :kzKzZnzKnnKZNzk/
+echo.        %G%.knkKZNKZNkkkZzzk%R%kzJ:zKzKZNKzzk/
+echo.           %G%`````kJk. k?K%R%:Kn. :nnK````
+echo.              %G%kNZn    kk %R%z.   .kKZ:
+echo.             %G%Nzk/     kN.%R%z.     kZNk
+echo.            %G%?zzN     :Zk %R%kZ     .KZN:
+echo.            %G%KKZZ    nKZ: %R%kBY:   /KZNk
+echo.            %G%KZkZ   nNkn   %R%JBP.  kKZN/
+echo.            %G%.ZNk  .Kkk     %R%nGk  .kNk
+echo.             %G%nKZNKZ:       %R%kKZNKZ/
+echo.               %G%.kZk          %R%.KZ/
 echo.
 
-set /p Win32PrioritySeparation=%del%  Enter value:
+set /p Win32PrioritySeparation=%del%              %W%Enter value in %M%HEX%R%:
 set Win32PrioritySeparation=%Win32PrioritySeparation: =%
 for /f %%a in ('powershell -command [uint32]'0x%Win32PrioritySeparation%'') do set Win32PrioritySeparationConvert=%%a
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\PriorityControl" /v "Win32PrioritySeparation" /t REG_DWORD /d "%Win32PrioritySeparationConvert%" /f >nul 2>&1
+call :StartMenu
 goto CheckValue
 
 :: Install Nvidia Driver
 :NvidiaDriver
-curl -g -L -# -o "%systemroot%\Files\NVIDIA.exe" "https://github.com/kaznaonx/KZNOSScript/releases/download/2.0/NvidiaDriver.exe"
-"%systemdrive%\Program Files\7-Zip\7z.exe" x -y -o"%systemroot%\Files\Nvidia" "%systemroot%\Files\NVIDIA.exe" >nul 2>&1
-%systemroot%\Files\Nvidia\setup.exe /s
+curl -g -L -# -o "%systemroot%\Files\NVIDIA.exe" "https://github.com/kaznaonx/kzn-script/releases/download/Files/NvidiaDriver.exe"
+"%systemdrive%\Program Files\7-Zip\7z.exe" x -y -o"%systemroot%\Files\Nvidia" "%systemroot%\Files\NVIDIA.exe" >nul 2>&1 && %systemroot%\Files\Nvidia\setup.exe /s
 del /f /q "%systemroot%\Files\NVIDIA.exe" >nul 2>&1 & rd /s /q "%systemroot%\Files\Nvidia" >nul 2>&1
 goto CheckValue
 
 :: Install Nvidia Profile Inspector & settings Nvidia
 :NvidiaProfileInspector
 if "%NPI%" EQU "%RED%Off" (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "NvidiaProfileInspector" /t REG_DWORD /d "1" /f
-    curl -g -L -# -o "%systemroot%\Files\CustomProfile.nip" "https://github.com/kaznaonx/KZNOSScript/releases/download/2.0/CustomProfile.nip"
+    curl -g -L -# -o "%systemroot%\Files\CustomProfile.nip" "https://github.com/kaznaonx/kzn-script/releases/download/Files/CustomProfile.nip"
     curl -g -L -# -o "%systemroot%\Files\nvidiaProfileInspector.zip" "https://github.com/Orbmu2k/nvidiaProfileInspector/releases/download/2.4.0.4/nvidiaProfileInspector.zip"
     powershell -NoProfile Expand-Archive "%systemroot%\Files\nvidiaProfileInspector.zip" -DestinationPath '%systemroot%\Files'
-    cd "%systemroot%\Files"
-    nvidiaProfileInspector.exe "CustomProfile.nip"
-    del /f /q "%systemroot%\Files\nvidiaProfileInspector.exe.config" & del /f /q "%systemroot%\Files\nvidiaProfileInspector.zip" & del /f /q "%systemroot%\Files\Reference.xml" & del /f /q "%systemroot%\Files\nvidiaProfileInspector.exe" & del /f /q "%systemroot%\Files\CustomProfile.nip"
+    cd "%systemroot%\Files" && nvidiaProfileInspector.exe "CustomProfile.nip"
+    del /f /q "%systemroot%\Files\nvidiaProfileInspector.exe.config" "%systemroot%\Files\nvidiaProfileInspector.zip" "%systemroot%\Files\Reference.xml" "%systemroot%\Files\nvidiaProfileInspector.exe" "%systemroot%\Files\CustomProfile.nip"
+    reg add "HKCU\SOFTWARE\KZNScript" /v "NvidiaProfileInspector" /f
 ) >nul 2>&1 else (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "NvidiaProfileInspector" /t REG_DWORD /d "0" /f
-    curl -g -L -# -o "%systemroot%\Files\BaseProfile.nip" "https://github.com/kaznaonx/KZNOSScript/releases/download/2.0/BaseProfile.nip"
+    curl -g -L -# -o "%systemroot%\Files\BaseProfile.nip" "https://github.com/kaznaonx/kzn-script/releases/download/Files/BaseProfile.nip"
     curl -g -L -# -o "%systemroot%\Files\nvidiaProfileInspector.zip" "https://github.com/Orbmu2k/nvidiaProfileInspector/releases/download/2.4.0.4/nvidiaProfileInspector.zip"
     powershell -NoProfile Expand-Archive "%systemroot%\Files\nvidiaProfileInspector.zip" -DestinationPath '%systemroot%\Files'
-    cd "%systemroot%\Files"
-    nvidiaProfileInspector.exe "BaseProfile.nip"
-    del /f /q "%systemroot%\Files\nvidiaProfileInspector.exe.config" & del /f /q "%systemroot%\Files\nvidiaProfileInspector.zip" & del /f /q "%systemroot%\Files\Reference.xml" & del /f /q "%systemroot%\Files\nvidiaProfileInspector.exe" & del /f /q "%systemroot%\Files\BaseProfile.nip"
+    cd "%systemroot%\Files" && nvidiaProfileInspector.exe "BaseProfile.nip"
+    del /f /q "%systemroot%\Files\nvidiaProfileInspector.exe.config" "%systemroot%\Files\nvidiaProfileInspector.zip" "%systemroot%\Files\Reference.xml" "%systemroot%\Files\nvidiaProfileInspector.exe" "%systemroot%\Files\BaseProfile.nip"
+    reg delete "HKCU\SOFTWARE\KZNScript" /v "NvidiaProfileInspector" /f
 ) >nul 2>&1
 goto CheckValue
 
@@ -391,70 +447,106 @@ goto CheckValue
 
 :: GPUScheduling
 :GPUScheduling
-if "%GPUS%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "2" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "1" /f ) >nul 2>&1
+if "%GPUS%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "2" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers" /v "HwSchMode" /t REG_DWORD /d "1" /f
+) >nul 2>&1
 goto CheckValue
 
 :: NvidiaPreemption
 :NvidiaPreemption
 if "%NP%" EQU "%RED%Off" (
-    for %%a in (EnableMidGfxPreemption EnableMidGfxPreemptionVGPU EnableMidBufferPreemptionForHighTdrTimeout EnableMidBufferPreemption EnableAsyncMidBufferPreemption EnableCEPreemption ComputePreemption) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "%%a" /t REG_DWORD /d "0" /f
-    for %%a in (DisablePreemption DisableCudaContextPreemption DisablePreemptionOnS3S4) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "%%a" /t REG_DWORD /d "1" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm\Global\NVTweak" /v "DisplayPowerSaving" /t REG_DWORD /d "0" /f
-    reg add "HKLM\SOFTWARE\NVIDIA Corporation\Global\NVTweak" /v "DisplayPowerSaving" /t REG_DWORD /d "0" /f
+    for %%x in (
+        "EnableMidGfxPreemption=0"
+        "EnableMidGfxPreemptionVGPU=0"
+        "EnableMidBufferPreemptionForHighTdrTimeout=0"
+        "EnableMidBufferPreemption=0"
+        "EnableAsyncMidBufferPreemption=0"
+        "EnableCEPreemption=0"
+        "ComputePreemption=0"
+        "DisablePreemption=1"
+        "DisableCudaContextPreemption=1"
+        "DisablePreemptionOnS3S4=1"
+    ) do (for /f "tokens=1,2 delims==" %%a in ("%%~x") do (reg add "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v %%a /t REG_DWORD /d %%b /f))
+    for %%a in ("HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm\Global\NVTweak" "HKLM\SOFTWARE\NVIDIA Corporation\Global\NVTweak") do reg add %%a /v "DisplayPowerSaving" /t REG_DWORD /d "0" /f
     reg add "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Scheduler" /v "EnablePreemption" /t REG_DWORD /d "0" /f
 ) >nul 2>&1 else (
-    for %%a in (EnableMidGfxPreemption EnableMidGfxPreemptionVGPU EnableMidBufferPreemptionForHighTdrTimeout EnableMidBufferPreemption EnableAsyncMidBufferPreemption EnableCEPreemption ComputePreemption DisablePreemption DisableCudaContextPreemption DisablePreemptionOnS3S4) do reg delete "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "%%a" /f
-    reg delete "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm\Global\NVTweak" /v "DisplayPowerSaving" /f
-    reg delete "HKLM\SOFTWARE\NVIDIA Corporation\Global\NVTweak" /v "DisplayPowerSaving" /f
+    for %%a in (
+        "EnableMidGfxPreemption"
+        "EnableMidGfxPreemptionVGPU"
+        "EnableMidBufferPreemptionForHighTdrTimeout"
+        "EnableMidBufferPreemption"
+        "EnableAsyncMidBufferPreemption"
+        "EnableCEPreemption"
+        "ComputePreemption"
+        "DisablePreemption"
+        "DisableCudaContextPreemption"
+        "DisablePreemptionOnS3S4"
+    ) do reg delete "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v %%a /f
+    for %%a in ("HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm\Global\NVTweak" "HKLM\SOFTWARE\NVIDIA Corporation\Global\NVTweak") do reg delete %%a /v "DisplayPowerSaving" /f
     reg delete "HKLM\SYSTEM\CurrentControlSet\Control\GraphicsDrivers\Scheduler" /v "EnablePreemption" /f
 ) >nul 2>&1
 goto CheckValue
 
 :: WriteCombining
 :WriteCombining
-if "%WC%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "DisableWriteCombining" /t REG_DWORD /d "1" /f ) >nul 2>&1 else ( reg delete "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "DisableWriteCombining" /f ) >nul 2>&1
+if "%WC%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "DisableWriteCombining" /t REG_DWORD /d "1" /f
+) >nul 2>&1 else (
+    reg delete "HKLM\SYSTEM\CurrentControlSet\Services\nvlddmkm" /v "DisableWriteCombining" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Settings Network Adapter
 :NetworkAdapter
 if "%ADAPTER%" EQU "%RED%Off" (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "Adapter" /t REG_DWORD /d "1" /f
+    reg add "HKCU\SOFTWARE\KZNScript" /v "Adapter" /f
     for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
         for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%i" /v "Driver"') do (
             for /f %%i in ('echo %%a ^| findstr "{"') do (
-                for %%a in (FlowControl UDPChecksumOffloadIPv6 UDPChecksumOffloadIPv4 TCPChecksumOffloadIPv4 TCPChecksumOffloadIPv6 PriorityVLANTag IPChecksumOffloadIPv4 PMARPOffload PMNSOffload LsoV2IPv4 LsoV2IPv6 WakeOnMagicPacket WakeOnPattern) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "*%%a" ^| findstr "HKEY"') do reg add "%%b" /v "*%%a" /t REG_SZ /d "0" /f >nul 2>&1)))
+                for %%a in (FlowControl UDPChecksumOffloadIPv6 UDPChecksumOffloadIPv4 TCPChecksumOffloadIPv4 TCPChecksumOffloadIPv6 PriorityVLANTag IPChecksumOffloadIPv4 PMARPOffload PMNSOffload LsoV2IPv4 LsoV2IPv6 WakeOnMagicPacket WakeOnPattern) do (
+                    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "*%%a" ^| findstr "HKEY"') do reg add "%%b" /v "*%%a" /t REG_SZ /d "0" /f >nul 2>&1))))
 
     for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
         for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%i" /v "Driver"') do (
             for /f %%i in ('echo %%a ^| findstr "{"') do (
-                for %%a in (EnablePME EEELinkAdvertisement ULPMode ReduceSpeedOnPowerDown WaitAutoNegComplete WakeOnLink) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "%%a" ^| findstr "HKEY"') do reg add "%%b" /v "%%a" /t REG_SZ /d "0" /f >nul 2>&1)))
+                for %%a in (EnablePME EEELinkAdvertisement ULPMode ReduceSpeedOnPowerDown WaitAutoNegComplete WakeOnLink) do (
+                    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "%%a" ^| findstr "HKEY"') do reg add "%%b" /v "%%a" /t REG_SZ /d "0" /f >nul 2>&1))))
 ) >nul 2>&1 else (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "Adapter" /t REG_DWORD /d "0" /f
+    reg delete "HKCU\SOFTWARE\KZNScript" /v "Adapter" /f
     for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
         for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%i" /v "Driver"') do (
             for /f %%i in ('echo %%a ^| findstr "{"') do (
-                for %%a in (PMARPOffload PMNSOffload LsoV2IPv4 LsoV2IPv6 WakeOnMagicPacket WakeOnPattern) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "*%%a" ^| findstr "HKEY"') do reg add "%%b" /v "*%%a" /t REG_SZ /d "1" /f >nul 2>&1)))
+                for %%a in (PMARPOffload PMNSOffload LsoV2IPv4 LsoV2IPv6 WakeOnMagicPacket WakeOnPattern) do (
+                    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "*%%a" ^| findstr "HKEY"') do reg add "%%b" /v "*%%a" /t REG_SZ /d "1" /f >nul 2>&1))))
 
     for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
         for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%i" /v "Driver"') do (
             for /f %%i in ('echo %%a ^| findstr "{"') do (
-                for %%a in (EnablePME EEELinkAdvertisement ULPMode ReduceSpeedOnPowerDown WaitAutoNegComplete) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "%%a" ^| findstr "HKEY"') do reg add "%%b" /v "%%a" /t REG_SZ /d "1" /f >nul 2>&1)))
+                for %%a in (EnablePME EEELinkAdvertisement ULPMode ReduceSpeedOnPowerDown WaitAutoNegComplete) do (
+                    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "%%a" ^| findstr "HKEY"') do reg add "%%b" /v "%%a" /t REG_SZ /d "1" /f >nul 2>&1))))
 
     for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
         for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%i" /v "Driver"') do (
             for /f %%i in ('echo %%a ^| findstr "{"') do (
-                for %%a in (FlowControl IPChecksumOffloadIPv4 PriorityVLANTag UDPChecksumOffloadIPv6 UDPChecksumOffloadIPv4 TCPChecksumOffloadIPv4 TCPChecksumOffloadIPv6) do for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "*%%a" ^| findstr "HKEY"') do reg add "%%b" /v "*%%a" /t REG_SZ /d "3" /f >nul 2>&1)))
+                for %%a in (FlowControl IPChecksumOffloadIPv4 PriorityVLANTag UDPChecksumOffloadIPv6 UDPChecksumOffloadIPv4 TCPChecksumOffloadIPv4 TCPChecksumOffloadIPv6) do (
+                    for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "*%%a" ^| findstr "HKEY"') do reg add "%%b" /v "*%%a" /t REG_SZ /d "3" /f >nul 2>&1))))
 ) >nul 2>&1
 goto CheckValue
 
 :: TCP/IP
 :TCP/IP
 if "%TCP%" EQU "%RED%Off" (
-    for %%a in (EnablePMTUDiscovery TcpMaxConnectRetransmissions Tcp1323Opts) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "%%a" /t REG_DWORD /d "1" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "IGMPLevel" /t REG_DWORD /d "0" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "DefaultTTL" /t REG_DWORD /d "64" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "MaxUserPort" /t REG_DWORD /d "65534" /f
-    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "TcpTimedWaitDelay" /t REG_DWORD /d "32" /f
+    for %%x in (
+        "EnablePMTUDiscovery=1"
+        "TcpMaxConnectRetransmissions=1"
+        "Tcp1323Opts=1"
+        "IGMPLevel=0"
+        "DefaultTTL=64"
+        "MaxUserPort=65534"
+        "TcpTimedWaitDelay=32"
+    ) do for /f "tokens=1,2 delims==" %%a in ("%%~x") do (reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v %%a /t REG_DWORD /d %%b /f)
     for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpAckFrequency" /t REG_DWORD /d "1" /f
     for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TcpDelAckTicks" /t REG_DWORD /d "0" /f
     for /f %%i in ('wmic path win32_networkadapter get GUID ^| findstr "{"') do reg add "HKLM\System\CurrentControlSet\services\Tcpip\Parameters\Interfaces\%%i" /v "TCPNoDelay" /t REG_DWORD /d "1" /f
@@ -469,7 +561,7 @@ goto CheckValue
 :: Netsh
 :Netsh
 if "%NET%" EQU "%RED%Off" (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "Netsh" /t REG_DWORD /d "1" /f
+    reg add "HKCU\SOFTWARE\KZNScript" /v "Netsh" /f
     netsh int tcp set global dca=enabled
     netsh interface isatap set state disabled
     netsh int tcp set global timestamps=disabled
@@ -492,7 +584,7 @@ if "%NET%" EQU "%RED%Off" (
     netsh int tcp set global maxsynretransmissions=2
     netsh int tcp set global hystart=disable
 ) >nul 2>&1 else (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "Netsh" /t REG_DWORD /d "0" /f
+    reg delete "HKCU\SOFTWARE\KZNScript" /v "Netsh" /f
     netsh int ip reset
     netsh winsock reset
 ) >nul 2>&1
@@ -500,19 +592,28 @@ goto CheckValue
 
 :: InterruptAffinity
 :InterruptAffinity
-title KZNScript
-mode 26,10
-cls
+title KZN Script Interrupt Affinity Policy Tool
+mode 49,20
 echo.
-echo.  %M%[%R%19%M%]%R% InterruptAffinity
-echo.  %G%Bind the CPU affinity
-echo.  of the interrupts
+echo.    %G%$.:k.:klk:.%R%                    .::....:::.
+echo.   %G%.knJzPkJnJYYJk\%R%            .:zKZNKZNKZNZ/:
+echo.      %G%zkJzJ.   :kJYk\:%R%    .:/ZKn/.   :zZKz.
+echo.       %G%zzkkBYzklzKZNKzk%R%  :kzKzZnzKnnKZNzk/
+echo.        %G%.knkKZNKZNkkkZzzk%R%kzJ:zKzKZNKzzk/
+echo.           %G%`````kJk. k?K%R%:Kn. :nnK````
+echo.              %G%kNZn    kk %R%z.   .kKZ:
+echo.             %G%Nzk/     kN.%R%z.     kZNk
+echo.            %G%?zzN     :Zk %R%kZ     .KZN:
+echo.            %G%KKZZ    nKZ: %R%kBY:   /KZNk
+echo.            %G%KZkZ   nNkn   %R%JBP.  kKZN/
+echo.            %G%.ZNk  .Kkk     %R%nGk  .kNk
+echo.             %G%nKZNKZ:       %R%kKZNKZ/
+echo.               %G%.kZk          %R%.KZ/
 echo.
-echo.  %R%Apply value: %GR%[1]%R%
-echo.  Reset value: %RED%2%R%
+echo.            %GR%[%R%1%GR%]%R% Apply      %RED%[%R%2%RED%]%R% Reset
 echo.
 
-set /p menu=%del%  Enter value:
+set /p menu=%del%                  Enter value:
 if "%menu%" EQU "1" goto Apply
 if "%menu%" EQU "2" goto Reset
 goto Tweaks
@@ -521,33 +622,34 @@ goto Tweaks
 if "%IAPT%" EQU "%RED%Off" (
     for /f "tokens=*" %%a in ('wmic cpu get NumberOfCores /value ^| find "="') do set %%a
     for /f "tokens=*" %%a in ('wmic cpu get NumberOfLogicalProcessors /value ^| find "="') do set %%a
-    reg add "HKCU\SOFTWARE\KZNScript" /v "InterruptAffinity" /t REG_DWORD /d "1" /f >nul 2>&1
+    reg add "HKCU\SOFTWARE\KZNScript" /v "InterruptAffinity" /f >nul 2>&1
     if !NumberOfLogicalProcessors! GTR !NumberOfCores! (
         for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "10" /f
         for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f
-    ) >nul 2>&1 else (
+    ) else (
         for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /t REG_BINARY /d "04" /f
-        for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f
-    ) >nul 2>&1
-)
+        for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /t REG_DWORD /d "4" /f)
+) >nul 2>&1
+call :StartMenu
 goto CheckValue
 
 :Reset
-reg add "HKCU\SOFTWARE\KZNScript" /v "InterruptAffinity" /t REG_DWORD /d "0" /f >nul 2>&1
+reg delete "HKCU\SOFTWARE\KZNScript" /v "InterruptAffinity" /f >nul 2>&1
 for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "AssignmentSetOverride" /f >nul 2>&1
 for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePolicy" /f >nul 2>&1
+call :StartMenu
 goto CheckValue
 
 :: MsiModeUtility
 :MsiModeUtility
 if "%MMU%" EQU "%RED%Off" (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "MsiModeUtility" /t REG_DWORD /d "1" /f
     for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "3" /f
     for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg add "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /t REG_DWORD /d "3" /f
+    reg add "HKCU\SOFTWARE\KZNScript" /v "MsiModeUtility" /f
 ) >nul 2>&1 else (
-    reg add "HKCU\SOFTWARE\KZNScript" /v "MsiModeUtility" /t REG_DWORD /d "0" /f
     for /f %%a in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
     for /f %%a in ('wmic path Win32_USBController get PNPDeviceID^| findstr /L "VEN_"') do reg delete "HKLM\SYSTEM\CurrentControlSet\Enum\%%a\Device Parameters\Interrupt Management\Affinity Policy" /v "DevicePriority" /f
+    reg delete "HKCU\SOFTWARE\KZNScript" /v "MsiModeUtility" /f
 ) >nul 2>&1
 goto CheckValue
 
@@ -572,12 +674,20 @@ goto CheckValue
 
 :: Bluetooth Services
 :Bluetooth
-if "%BLTH%" EQU "%RED%Off" ( for %%a in (Microsoft_Bluetooth_AvrcpTransport RFCOMM BTAGService BTHPORT BTHUSB BluetoothUserService BthA2dp BthAvctpSvc BthEnum BthHFEnum BthLEEnum BthMini HidBth bthserv) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "3" /f ) >nul 2>&1 else ( for %%a in (Microsoft_Bluetooth_AvrcpTransport RFCOMM BTAGService BTHPORT BTHUSB BluetoothUserService BthA2dp BthAvctpSvc BthEnum BthHFEnum BthLEEnum BthMini HidBth bthserv) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%BLTH%" EQU "%RED%Off" (
+    for %%a in (Microsoft_Bluetooth_AvrcpTransport RFCOMM BTAGService BTHPORT BTHUSB BluetoothUserService BthA2dp BthAvctpSvc BthEnum BthHFEnum BthLEEnum BthMini HidBth bthserv) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "3" /f
+) >nul 2>&1 else (
+    for %%a in (Microsoft_Bluetooth_AvrcpTransport RFCOMM BTAGService BTHPORT BTHUSB BluetoothUserService BthA2dp BthAvctpSvc BthEnum BthHFEnum BthLEEnum BthMini HidBth bthserv) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Printing Services
 :Printing
-if "%PRNT%" EQU "%RED%Off" ( for %%a in (Spooler PrintNotify PrintWorkflowUserSvc) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "3" /f ) >nul 2>&1 else ( for %%a in (Spooler PrintNotify PrintWorkflowUserSvc) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%PRNT%" EQU "%RED%Off" (
+    for %%a in (Spooler PrintNotify PrintWorkflowUserSvc) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "3" /f
+) >nul 2>&1 else (
+    for %%a in (Spooler PrintNotify PrintWorkflowUserSvc) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Network Services
@@ -593,9 +703,13 @@ goto CheckValue
 :: Firewall Services
 :Firewall
 if "%FRWL%" EQU "%RED%Off" (
+    for %%a in (PublicProfile StandardProfile DomainProfile) do reg add "HKLM\System\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\%%a" /v "DisableNotifications" /t REG_DWORD /d "0" /f
+    for %%a in (PublicProfile StandardProfile DomainProfile) do reg add "HKLM\System\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\%%a" /v "EnableFirewall" /t REG_DWORD /d "1" /f
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\mpssvc" /v "Start" /t REG_DWORD /d "2" /f
     reg add "HKLM\SYSTEM\CurrentControlSet\Services\mpsdrv" /v "Start" /t REG_DWORD /d "3" /f
 ) >nul 2>&1 else (
+    for %%a in (PublicProfile StandardProfile DomainProfile) do reg add "HKLM\System\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\%%a" /v "DisableNotifications" /t REG_DWORD /d "1" /f
+    for %%a in (PublicProfile StandardProfile DomainProfile) do reg add "HKLM\System\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\%%a" /v "EnableFirewall" /t REG_DWORD /d "0" /f
     for %%a in (mpssvc mpsdrv) do reg add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "4" /f
 ) >nul 2>&1
 goto CheckValue
@@ -622,54 +736,82 @@ goto CheckValue
 
 :: Human Interface Devices Services
 :HumanInterfaceDevices
-if "%HID%" EQU "%RED%Off" ( reg add "HKLM\System\CurrentControlSet\Services\hidserv" /v "Start" /t REG_DWORD /d "3" /f ) >nul 2>&1 else ( reg add "HKLM\System\CurrentControlSet\Services\hidserv" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%HID%" EQU "%RED%Off" (
+    reg add "HKLM\System\CurrentControlSet\Services\hidserv" /v "Start" /t REG_DWORD /d "3" /f
+) >nul 2>&1 else (
+    reg add "HKLM\System\CurrentControlSet\Services\hidserv" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Management Bios Services
 :ManagementBios
-if "%MBIOS%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\mssmbios" /v "Start" /t REG_DWORD /d "1" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\mssmbios" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%MBIOS%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\mssmbios" /v "Start" /t REG_DWORD /d "1" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\mssmbios" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Windows Settings Services
 :WindowsSettings
-if "%WSET%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\ahcache" /v "Start" /t REG_DWORD /d "1" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\ahcache" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%WSET%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\ahcache" /v "Start" /t REG_DWORD /d "1" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\ahcache" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Disk Defragmentation Services
 :DiskDefragmentation
-if "%DISKDEF%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\defragsvc" /v "Start" /t REG_DWORD /d "3" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\defragsvc" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%DISKDEF%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\defragsvc" /v "Start" /t REG_DWORD /d "3" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\defragsvc" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Troubleshooting Services
 :Troubleshooting
 if "%TRBL%" EQU "%RED%Off" (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "1" /f
-    PowerRun.exe reg.exe add "HKLM\SYSTEM\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "2" /f
     for %%a in (WdiServiceHost WdiSystemHost pla) do PowerRun.exe reg.exe add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "3" /f
+    PowerRun.exe reg.exe add "HKLM\SYSTEM\CurrentControlSet\Services\DPS" /v "Start" /t REG_DWORD /d "2" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "1" /f
 ) >nul 2>&1 else (
-    reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "0" /f
     for %%a in (DPS WdiServiceHost WdiSystemHost pla) do PowerRun.exe reg.exe add "HKLM\SYSTEM\CurrentControlSet\Services\%%a" /v "Start" /t REG_DWORD /d "4" /f
+    reg add "HKLM\SYSTEM\CurrentControlSet\Control\WMI\Autologger\DiagLog" /v "Start" /t REG_DWORD /d "0" /f
 ) >nul 2>&1
 goto CheckValue
 
 :: Task Manager Services
 :TaskManager
-if "%TASKM%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\services\pcw" /v "Start" /t REG_DWORD /d "0" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\services\pcw" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%TASKM%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\pcw" /v "Start" /t REG_DWORD /d "0" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\services\pcw" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Null Services
 :Null
-if "%NULL%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\Null" /v "Start" /t REG_DWORD /d "1" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\Null" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%NULL%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Null" /v "Start" /t REG_DWORD /d "1" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\Null" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Nvidia Panel Services
 :NvidiaPanel
-if "%NVIDIA%" EQU "%RED%Off" ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "2" /f ) >nul 2>&1 else ( reg add "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "4" /f ) >nul 2>&1
+if "%NVIDIA%" EQU "%RED%Off" (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "2" /f
+) >nul 2>&1 else (
+    reg add "HKLM\SYSTEM\CurrentControlSet\Services\NVDisplay.ContainerLocalSystem" /v "Start" /t REG_DWORD /d "4" /f
+) >nul 2>&1
 goto CheckValue
 
 :: Settings OBS Studio
 :SettingsOBSStudio
-curl -g -L -# -o "%systemroot%\Files\OBS.zip" "https://github.com/kaznaonx/KZNOSScript/raw/main/OBS.zip" >nul 2>&1
+curl -g -L -# -o "%systemroot%\Files\OBS.zip" "https://github.com/kaznaonx/kzn-script/releases/download/Files/OBS.zip" >nul 2>&1
 powershell -NoProfile Expand-Archive "%systemroot%\Files\OBS.zip" -DestinationPath '%systemroot%\Files' >nul 2>&1
 for %%a in (basic.ini recordEncoder.json streamEncoder.json) do move "%systemroot%\Files\OBS\%%a" "%userprofile%\AppData\Roaming\obs-studio\basic\profiles\Untitled" >nul 2>&1
 move "%systemroot%\Files\OBS\global.ini" "%userprofile%\AppData\Roaming\obs-studio" >nul 2>&1
@@ -680,9 +822,9 @@ goto CheckValue
 :Lightshot
 curl -g -L -# -o "%systemroot%\Files\setup-lightshot.exe" "https://app.prntscr.com/build/setup-lightshot.exe" >nul 2>&1
 %systemroot%\Files\setup-lightshot.exe /verysilent /norestart >nul 2>&1
-del /f /q "%systemroot%\Files\setup-lightshot.exe" >nul 2>&1
-for %%a in (ShowBubbles AutoClose AutoCopy) do reg add "HKCU\SOFTWARE\SkillBrains\Lightshot" /v "%%a" /t REG_DWORD /d "0" /f >nul 2>&1
+for %%a in ("ShowBubbles" "AutoClose" "AutoCopy") do reg add "HKCU\SOFTWARE\SkillBrains\Lightshot" /v %%a /t REG_DWORD /d "0" /f >nul 2>&1
 reg add "HKCU\SOFTWARE\SkillBrains\Lightshot" /v "ProxyType" /t REG_DWORD /d "1" /f >nul 2>&1
+del /f /q "%systemroot%\Files\setup-lightshot.exe" >nul 2>&1
 goto CheckValue
 
 :: Install Office
