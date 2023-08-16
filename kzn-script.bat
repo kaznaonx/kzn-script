@@ -1,5 +1,5 @@
 @echo off
-title KZN Script
+title KznScript
 setlocal EnableDelayedExpansion
 
 call :Colors & call :StartMenu
@@ -57,7 +57,7 @@ for %%i in (SVC PT NPI NP WC NC TCP NETSH IAPT MMU CSRSS STRS) do (set "%%i=!GR!
     :: Network card
     reg query "HKCU\SOFTWARE\KZNScript" /v "NetworkCard" || set "NC=!RED!Off"
     :: TCP
-    reg query "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "Tcp1323Opts" || set "TCP=!RED!Off"
+    reg query "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "TcpMaxConnectRetransmissions" || set "TCP=!RED!Off"
     :: Netsh
     reg query "HKCU\SOFTWARE\KZNScript" /v "Netsh" || set "NETSH=!RED!Off"
     :: Interrupt affinity policy tool
@@ -103,7 +103,7 @@ for %%i in (MS HAGS NVIDIA WU BLTH NK FRWL WIFI VPN HID MBIOS WSET DD TM) do (se
 goto %Page%
 
 :MainMenuFirstPage
-title KZN Script Page [1]
+title KznScript Page [1]
 mode 142,46
 echo.
 echo.    !G!$.:k.:klk:.!R!                    .::....:::.                                            !S!Tweaks
@@ -185,7 +185,7 @@ for %%i in (
 goto MainMenuFirstPage
 
 :MainMenuSecondPage
-title KZN Script Page [2]
+title KznScript Page [2]
 mode 142,46
 echo.
 echo.    !G!$.:k.:klk:.!R!                    .::....:::.                                           !Y!Services
@@ -463,7 +463,7 @@ if "!MMU!" EQU "!RED!Off" (
 goto CheckParameters
 
 :KeyboardDataQueueSize
-title KZN Script KeyboardDataQueueSize
+title KznScript KeyboardDataQueueSize
 mode 49,18
 cls
 echo.
@@ -493,7 +493,7 @@ call :StartMenu
 goto CheckParameters
 
 :MouseDataQueueSize
-title KZN Script MouseDataQueueSize
+title KznScript MouseDataQueueSize
 mode 49,18
 cls
 echo.
@@ -523,7 +523,7 @@ call :StartMenu
 goto CheckParameters
 
 :Win32PrioritySeparation
-title KZN Script Win32PrioritySeparation
+title KznScript Win32PrioritySeparation
 mode 49,18
 cls
 echo.
@@ -692,7 +692,7 @@ if "!NC!" EQU "!RED!Off" (
     for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
         for /f "tokens=3" %%a in ('reg query "HKLM\SYSTEM\CurrentControlSet\Enum\%%i" /v "Driver"') do (
             for /f %%i in ('echo %%a ^| findstr "{"') do (
-                for %%a in (FlowControl UDPChecksumOffloadIPv6 UDPChecksumOffloadIPv4 TCPChecksumOffloadIPv4 TCPChecksumOffloadIPv6 PriorityVLANTag IPChecksumOffloadIPv4 PMARPOffload PMNSOffload LsoV2IPv4 LsoV2IPv6 WakeOnMagicPacket WakeOnPattern) do (
+                for %%a in (PowerSavingMode FlowControl UDPChecksumOffloadIPv6 UDPChecksumOffloadIPv4 TCPChecksumOffloadIPv4 TCPChecksumOffloadIPv6 PriorityVLANTag IPChecksumOffloadIPv4 PMARPOffload PMNSOffload LsoV2IPv4 LsoV2IPv6 WakeOnMagicPacket WakeOnPattern) do (
                     for /f "delims=" %%b in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\Class\%%i" /s /f "*%%a" ^| findstr "HKEY"') do reg add "%%b" /v "*%%a" /t REG_SZ /d "0" /f))))
 
     for /f %%i in ('wmic path Win32_NetworkAdapter get PNPDeviceID^| findstr /L "PCI\VEN_"') do (
@@ -924,14 +924,64 @@ del /f /q "%systemroot%\Files\Autoruns64.exe" >nul 2>&1
 goto CheckParameters
 
 :OBS
-:: Installing OBS files
-curl -g -L -# -o "%systemroot%\Files\OBS.zip" "https://github.com/kaznaonx/kzn-script/releases/download/Files/OBS.zip" >nul 2>&1
-powershell -NoProfile Expand-Archive "%systemroot%\Files\OBS.zip" -DestinationPath '%systemroot%\Files' >nul 2>&1
-:: Move
-for %%a in (basic.ini recordEncoder.json streamEncoder.json) do move "%systemroot%\Files\%%a" "%appdata%\obs-studio\basic\profiles\Untitled" >nul 2>&1
-move "%systemroot%\Files\global.ini" "%appdata%\obs-studio" >nul 2>&1
-:: Removing files
-for %%a in (basic.ini recordEncoder.json streamEncoder.json OBS.zip) do del /f /q "%systemroot%\Files\%%a" >nul 2>&1
+(for %%i in (
+    "[General]"
+    "BrowserHWAccel=false"
+    "FirstRun=true"
+    ""
+    "[BasicWindow]"
+    "ShowListboxToolbars=false"
+    "ShowContextToolbars=false"
+    "WarnBeforeStartingStream=true"
+    "WarnBeforeStoppingStream=true"
+    "WarnBeforeStoppingRecord=true"
+    "SysTrayMinimizeToTray=false"
+    "geometry=AdnQywADAAAAAAEeAAAAMwAABhEAAAPQAAABHgAAAFIAAAYRAAAD0AAAAAAAAAAAB4AAAAEeAAAAUgAABhEAAAPQ"
+    "DockState=AAAA/wAAAAD9AAAAAQAAAAMAAAT0AAABK/wBAAAABvsAAAAUAHMAYwBlAG4AZQBzAEQAbwBjAGsBAAAAAAAAATEAAACgAP////sAAAAWAHMAbwB1AHIAYwBlAHMARABvAGMAawEAAAE1AAABJgAAAKAA////+wAAABIAbQBpAHgAZQByAEQAbwBjAGsBAAACXwAAAXUAAADeAP////sAAAAeAHQAcgBhAG4AcwBpAHQAaQBvAG4AcwBEAG8AYwBrAAAAAs8AAACcAAAAggD////7AAAAGABjAG8AbgB0AHIAbwBsAHMARABvAGMAawEAAAPYAAABHAAAAJ4A////+wAAABIAcwB0AGEAdABzAEQAbwBjAGsCAAACYgAAAdcAAAK8AAAAyAAABPQAAAIfAAAABAAAAAQAAAAIAAAACPwAAAAA"
+    ""
+    "[Accessibility]"
+    "SelectRed=255"
+    "SelectGreen=65280"
+    "SelectBlue=16744192"
+    "MixerGreen=2522918"
+    "MixerYellow=2523007"
+    "MixerRed=2500223"
+    "MixerGreenActive=5046092"
+    "MixerYellowActive=5046271"
+    "MixerRedActive=5000447"
+    ""
+    "[ScriptLogWindow]"
+    "geometry=AdnQywADAAAAAAAAAAAAFAAAAlcAAAGjAAAAAAAAABQAAAJXAAABowAAAAAAAAAAB4AAAAAAAAAAFAAAAlcAAAGj"
+) do echo.%%~i) > "%appdata%\obs-studio\global.ini"
+
+(for %%i in (
+    "[General]"
+    "OpenStatsOnStartup=false"
+    ""
+    "[Output]"
+    "Mode=Advanced"
+    ""
+    "[AdvOut]"
+    "Encoder=jim_nvenc"
+    "RecFormat2=mp4"
+    "RecEncoder=jim_nvenc"
+    "RecRB=true"
+    "RecRBTime=30"
+    "RecSplitFileType=Time"
+    "FFFormat="
+    "FFFormatMimeType="
+    "FFVEncoderId=0"
+    "FFVEncoder="
+    "FFAEncoderId=0"
+    "FFAEncoder="
+    ""
+    "[Video]"
+    "FPSCommon=60"
+    "ColorSpace=sRGB"
+) do echo.%%~i) > "%appdata%\obs-studio\basic\profiles\Untitled\basic.ini"
+
+echo {"bitrate":6000,"keyint_sec":2,"lookahead":false} > "%appdata%\obs-studio\basic\profiles\Untitled\recordEncoder.json"
+echo {"bitrate":6000,"keyint_sec":2,"lookahead":false} > "%appdata%\obs-studio\basic\profiles\Untitled\streamEncoder.json"
 goto CheckParameters
 
 :Lightshot
